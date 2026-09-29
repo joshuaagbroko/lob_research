@@ -1,0 +1,17 @@
+[project]
+name = "lobresearch"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "pandas",
+    "numpy",
+    "pyarrow",
+    "matplotlib",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "scikit-learn"]
+
+[build-system]
+requires = ["maturin>=1.5,<2.0"]
+build-backend = "maturin"
