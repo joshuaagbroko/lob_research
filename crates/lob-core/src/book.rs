@@ -119,6 +119,17 @@ impl OrderBook {
         }
     }
 
+    /// Total resting size at an exact price on one side, or 0 if the price has no orders.
+    /// Used by reconciliation logic that needs to compare our own known size against an
+    /// external reference at a specific price, independent of whether that price is
+    /// currently within the top-N levels returned by `levels()`.
+    pub fn size_at(&self, side: Side, price: i64) -> u32 {
+        match side {
+            Side::Bid => self.bids.get(&price).map(|l| l.total).unwrap_or(0),
+            Side::Ask => self.asks.get(&price).map(|l| l.total).unwrap_or(0),
+        }
+    }
+
     /// Total size queued ahead of `order_id` at its price level (O(level length)).
     pub fn queue_ahead(&self, order_id: u64) -> Option<u32> {
         let (side, price) = *self.index.get(&order_id)?;

@@ -1,4 +1,4 @@
-"""Diff the reconstructed book against LOBSTER's own orderbook file.
+"""Compare reconstructed book against LOBSTER reference, level by level.
 
 Usage: python scripts/validate_book.py <lobster_orderbook.csv> <reconstructed.csv> [levels]
 
@@ -17,22 +17,37 @@ import numpy as np
 def main(ref_path: str, mine_path: str, levels: int | None = None) -> int:
     ref = np.loadtxt(ref_path, delimiter=",", dtype=np.int64)
     mine = np.loadtxt(mine_path, delimiter=",", dtype=np.int64)
-    if levels:
-        ref, mine = ref[:, : 4 * levels], mine[:, : 4 * levels]
+
     if ref.shape != mine.shape:
         print(f"FAIL: shape mismatch, reference {ref.shape} vs reconstructed {mine.shape}")
         return 1
-    bad = np.argwhere(ref != mine)
-    if len(bad):
-        row, col = bad[0]
-        print(f"FAIL: {len(np.unique(bad[:, 0]))} mismatching rows; first at row {row}, column {col}: "
-              f"reference {ref[row, col]} vs reconstructed {mine[row, col]}")
-        return 1
-    print(f"OK: {ref.shape[0]} rows x {ref.shape[1]} columns identical")
-    return 0
+
+    n_cols = ref.shape[1]
+    if levels is None:
+        levels = n_cols // 4
+
+    overall_first = None
+    for lvl in range(levels):
+        cols = slice(4 * lvl, 4 * lvl + 4)
+        diff_rows = np.argwhere((ref[:, cols] != mine[:, cols]).any(axis=1)).ravel()
+        n_diff = len(diff_rows)
+        if n_diff == 0:
+            print(f"level {lvl+1:2d}: OK — {ref.shape[0]} rows identical")
+            continue
+        first = int(diff_rows[0])
+        if overall_first is None or first < overall_first:
+            overall_first = first
+        print(f"level {lvl+1:2d}: {n_diff:>7d} / {ref.shape[0]} rows differ, "
+              f"first at row {first}")
+
+    if overall_first is None:
+        print(f"\nOK: {ref.shape[0]} rows × {ref.shape[1]} columns identical")
+        return 0
+    print(f"\nFAIL: earliest divergence at row {overall_first}")
+    return 1
 
 
 if __name__ == "__main__":
-    if len(sys.argv) not in (3, 4):
-        sys.exit(__doc__)
-    sys.exit(main(sys.argv[1], sys.argv[2], int(sys.argv[3]) if len(sys.argv) == 4 else None))
+    ref_path, mine_path = sys.argv[1], sys.argv[2]
+    levels = int(sys.argv[3]) if len(sys.argv) > 3 else None
+    sys.exit(main(ref_path, mine_path, levels))
