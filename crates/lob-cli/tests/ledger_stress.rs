@@ -71,7 +71,7 @@ fn drain_to_empty_then_topup_in_one_event() {
     // fully drains the previous one before the next event arrives) -- not one
     // ghost reused incorrectly, and not a crash/short-circuit.
     assert!(
-        stderr.contains("ghost reconciliation: 3 shares drained"),
+        stderr.contains("phantom reconciliation: 3 shares drawn down"),
         "expected 3 ghost drains (one per message), got:\n{stderr}"
     );
 
